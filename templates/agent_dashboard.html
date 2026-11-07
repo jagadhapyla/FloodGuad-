@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Dashboard - FloodGuard AI Operations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" onerror="this.onerror=null;this.href='../static/style.css';">
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.write('<link rel="stylesheet" href="../static/style.css">');
+        }
+    </script>
+</head>
+<body>
+
+<!-- Header Navigation -->
+<header class="site-header">
+    <div class="nav-container">
+        <a href="{{ url_for('agent_dashboard') }}" class="brand-link">
+            <div class="brand-icon">🌊</div>
+            <div>
+                <span class="brand-name">FloodGuard AI</span>
+                <span class="brand-badge">Command Center</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('export_csv') }}" class="nav-link btn-portal">
+                📥 Export CSV
+            </a>
+            <a href="{{ url_for('home') }}" class="nav-link btn-portal" target="_blank">
+                🌐 Public Form
+            </a>
+            <a href="{{ url_for('logout') }}" class="nav-link btn-logout">
+                🚪 Sign Out
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="main-content">
+    <div class="dashboard-container">
+
+        <!-- Top Profile Bar -->
+        <div class="dashboard-topbar">
+            <div class="agent-profile">
+                <div class="agent-avatar">
+                    {{ agent_username[0]|upper if agent_username else 'A' }}
+                </div>
+                <div class="agent-meta">
+                    <h2>Emergency Operations Dispatch</h2>
+                    <div class="agent-status-pill">
+                        <span class="status-dot"></span>
+                        Logged in as <strong>{{ agent_username }}</strong> • Active Duty
+                    </div>
+                </div>
+            </div>
+            <div>
+                <a href="{{ url_for('export_csv') }}" class="btn btn-secondary">
+                    📥 Download CSV Report
+                </a>
+            </div>
+        </div>
+
+        <!-- Flash Messages -->
+        <div class="flash-wrapper">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">
+                            <span>
+                                {% if category == 'success' %}✓{% else %}⚠️{% endif %}
+                                {{ message }}
+                            </span>
+                            <button type="button" class="alert-dismiss" aria-label="Close">&times;</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Metrics Overview Grid -->
+        <div class="metrics-grid">
+            <div class="metric-card metric-total">
+                <div class="metric-data">
+                    <h3>{{ stats.total }}</h3>
+                    <p>Total Incidents</p>
+                </div>
+                <div class="metric-icon">📋</div>
+            </div>
+
+            <div class="metric-card metric-pending">
+                <div class="metric-data">
+                    <h3>{{ stats.pending }}</h3>
+                    <p>Pending Review</p>
+                </div>
+                <div class="metric-icon">⏳</div>
+            </div>
+
+            <div class="metric-card metric-progress">
+                <div class="metric-data">
+                    <h3>{{ stats.in_progress }}</h3>
+                    <p>In Progress</p>
+                </div>
+                <div class="metric-icon">🚧</div>
+            </div>
+
+            <div class="metric-card metric-completed">
+                <div class="metric-data">
+                    <h3>{{ stats.completed }}</h3>
+                    <p>Resolved</p>
+                </div>
+                <div class="metric-icon">✅</div>
+            </div>
+        </div>
+
+        <!-- Controls: Search & Status Filters -->
+        <div class="controls-bar">
+            <div class="search-box">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="dashboardSearch" class="search-input" placeholder="Filter by ID, citizen name, location, or keyword...">
+            </div>
+
+            <div class="filter-tabs">
+                <button type="button" class="filter-tab active" data-filter="all">All ({{ stats.total }})</button>
+                <button type="button" class="filter-tab" data-filter="pending">Pending ({{ stats.pending }})</button>
+                <button type="button" class="filter-tab" data-filter="in progress">In Progress ({{ stats.in_progress }})</button>
+                <button type="button" class="filter-tab" data-filter="completed">Completed ({{ stats.completed }})</button>
+            </div>
+        </div>
+
+        <!-- Incidents List -->
+        <div class="problems-list" id="problemsList">
+            {% for problem in problems %}
+                <div class="problem-card" data-status="{{ problem.status|lower }}">
+                    
+                    <!-- Card Header -->
+                    <div class="problem-header">
+                        <div class="id-badge">
+                            <span>🆔 Complaint FG{{ problem.id }}</span>
+                            {% if problem.created_at %}
+                                <span class="date-badge">• {{ problem.created_at }}</span>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            {% if problem.status == 'Pending' %}
+                                <span class="status-badge pending">⏳ Pending Assessment</span>
+                            {% elif problem.status == 'In Progress' %}
+                                <span class="status-badge in-progress">🚧 In Progress</span>
+                            {% elif problem.status == 'Completed' %}
+                                <span class="status-badge completed">✓ Resolved</span>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="problem-body">
+                        
+                        <!-- Details Column -->
+                        <div class="problem-details-col">
+                            <h3 class="problem-title">{{ problem.title }}</h3>
+
+                            <div class="info-grid">
+                                <div class="info-item">
+                                    <span class="info-label">Reporter Name</span>
+                                    <span class="info-value">👤 {{ problem.name }}</span>
+                                </div>
+                                <div class="info-item">
+                                    <span class="info-label">Contact Email</span>
+                                    <span class="info-value">
+                                        ✉️ <a href="mailto:{{ problem.email }}">{{ problem.email }}</a>
+                                    </span>
+                                </div>
+                                <div class="info-item" style="grid-column: 1 / -1;">
+                                    <span class="info-label">Reported Location / Landmark</span>
+                                    <span class="info-value">📍 {{ problem.location }}</span>
+                                </div>
+                            </div>
+
+                            <span class="info-label">Incident Description</span>
+                            <div class="description-box">
+                                {{ problem.description }}
+                            </div>
+
+                            <!-- GPS Coordinates Row -->
+                            {% if problem.latitude and problem.longitude %}
+                                <span class="info-label">GPS Geolocation Verification</span>
+                                <div class="coordinates-row">
+                                    <div class="coord-tag">
+                                        <span class="tag-label">Lat:</span> {{ "%.5f"|format(problem.latitude) }}°
+                                    </div>
+                                    <div class="coord-tag">
+                                        <span class="tag-label">Lon:</span> {{ "%.5f"|format(problem.longitude) }}°
+                                    </div>
+                                    {% if problem.accuracy %}
+                                        <div class="coord-tag">
+                                            <span class="tag-label">Accuracy:</span> ±{{ problem.accuracy|round|int }}m
+                                        </div>
+                                    {% endif %}
+                                    <a href="https://www.google.com/maps?q={{ problem.latitude }},{{ problem.longitude }}" target="_blank" rel="noopener noreferrer" class="btn-map">
+                                        🗺️ Open in Google Maps &rarr;
+                                    </a>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Media & Status Column -->
+                        <div class="problem-media-col">
+                            
+                            <!-- Incident Photo -->
+                            {% if problem.photo_path %}
+                                <div class="card-photo-wrapper">
+                                    <img src="{{ url_for('static', filename=problem.photo_path) }}" 
+                                         alt="Flood Photo FG{{ problem.id }}" 
+                                         class="card-photo expandable-photo" 
+                                         data-full="{{ url_for('static', filename=problem.photo_path) }}"
+                                         data-caption="Complaint FG{{ problem.id }} - {{ problem.title }}">
+                                    <div class="photo-overlay-tag">🔍 Click to Zoom</div>
+                                </div>
+                            {% else %}
+                                <div class="no-photo-box">
+                                    <div style="font-size: 24px; margin-bottom: 4px;">📷</div>
+                                    <span>No photo attached</span>
+                                </div>
+                            {% endif %}
+
+                            <!-- Email Notification Status -->
+                            <div>
+                                <span class="info-label">Citizen Notification Status</span>
+                                {% if problem.email_status == 'Sent' %}
+                                    <div class="email-status-pill sent">
+                                        <span>✓ Email Delivered</span>
+                                    </div>
+                                {% elif problem.email_status == 'Failed' %}
+                                    <div class="email-status-pill failed">
+                                        <span>⚠️ Email Dispatch Failed</span>
+                                    </div>
+                                {% else %}
+                                    <div class="email-status-pill not-sent">
+                                        <span>⏳ Notification Not Sent</span>
+                                    </div>
+                                {% endif %}
+
+                                <!-- Retry Button for Failed or Unsent Completed -->
+                                {% if problem.status == 'Completed' and problem.email_status != 'Sent' %}
+                                    <form action="{{ url_for('retry_email', problem_id=problem.id) }}" method="POST">
+                                        <button type="submit" class="btn-retry">
+                                            🔄 Retry Resolution Email
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <!-- Agent Resolution & Status Update Section -->
+                    <div class="resolution-section">
+                        <form action="{{ url_for('update_status', problem_id=problem.id) }}" method="POST" class="resolution-form">
+                            <div class="resolution-form-header">
+                                <span>🛠️ Update Incident Status &amp; Field Actions</span>
+                            </div>
+
+                            <div class="resolution-row">
+                                <div class="resolution-select-col">
+                                    <label for="status_{{ problem.id }}">Change Status</label>
+                                    <select name="status" id="status_{{ problem.id }}" required>
+                                        <option value="Pending" {% if problem.status == 'Pending' %}selected{% endif %}>
+                                            Pending
+                                        </option>
+                                        <option value="In Progress" {% if problem.status == 'In Progress' %}selected{% endif %}>
+                                            In Progress
+                                        </option>
+                                        <option value="Completed" {% if problem.status == 'Completed' %}selected{% endif %}>
+                                            Completed
+                                        </option>
+                                    </select>
+                                </div>
+
+                                <div class="resolution-text-col">
+                                    <label for="remarks_{{ problem.id }}">
+                                        Agent Resolution Remarks
+                                        <span class="label-hint">(Required when resolving; emailed to citizen)</span>
+                                    </label>
+                                    <textarea name="remarks" id="remarks_{{ problem.id }}" placeholder="Detail actions taken (e.g. Drainage cleared, water pumps deployed, road reopened for traffic)..." maxlength="2000">{{ problem.remarks }}</textarea>
+                                </div>
+                            </div>
+
+                            <div class="resolution-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    💾 Save Status &amp; Send Updates
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🌊</div>
+                    <h3 class="empty-title">No Incident Reports Found</h3>
+                    <p class="empty-subtitle">All flood complaints will appear here in real-time as citizens report them.</p>
+                </div>
+            {% endfor %}
+
+            <!-- Filter No Match Message -->
+            <div id="noResultsMessage" class="empty-state" style="display: none;">
+                <div class="empty-icon">🔎</div>
+                <h3 class="empty-title">No Matching Reports</h3>
+                <p class="empty-subtitle">Try adjusting your search query or status filter.</p>
+            </div>
+        </div>
+
+    </div>
+</main>
+
+<!-- Photo Lightbox Modal -->
+<div id="photoModal" class="photo-modal">
+    <div class="modal-content-wrapper">
+        <button type="button" class="modal-close" id="modalClose">&times;</button>
+        <img id="modalImage" class="modal-image" src="" alt="Full Resolution Flood Photo">
+        <div id="modalCaption" class="modal-caption"></div>
+    </div>
+</div>
+
+<footer class="site-footer">
+    <div>&copy; 2026 FloodGuard AI Incident Management Network • Emergency Agent Operations System</div>
+</footer>
+
+<script>
+    if (window.location.protocol === 'file:') {
+        document.write('<script src="../static/script.js"><\/script>');
+    }
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

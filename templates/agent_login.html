@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agent Login - FloodGuard AI Operations</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" onerror="this.onerror=null;this.href='../static/style.css';">
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.write('<link rel="stylesheet" href="../static/style.css">');
+        }
+    </script>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="nav-container">
+        <a href="{{ url_for('home') }}" class="brand-link">
+            <div class="brand-icon">🌊</div>
+            <div>
+                <span class="brand-name">FloodGuard AI</span>
+                <span class="brand-badge">Agent Portal</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}" class="nav-link btn-portal">
+                ← Public Incident Reporter
+            </a>
+            <a href="{{ url_for('track') }}" class="nav-link btn-portal">
+                🔍 Track Status
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="main-content">
+    <div class="container container-narrow">
+        
+        <div class="page-header">
+            <div class="login-badge">
+                🛡️ Authorized Personnel Only
+            </div>
+            <h1 class="page-title">Agent Login</h1>
+            <p class="page-subtitle">Sign in to review incident reports and update emergency statuses.</p>
+        </div>
+
+        <!-- Flash Messages -->
+        <div class="flash-wrapper">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">
+                            <span>
+                                {% if category == 'success' %}✓{% else %}⚠️{% endif %}
+                                {{ message }}
+                            </span>
+                            <button type="button" class="alert-dismiss" aria-label="Close">&times;</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <form method="POST" action="{{ url_for('agent_login') }}">
+            <div class="form-group">
+                <label for="username">Agent Username <span class="required-star">*</span></label>
+                <input type="text" id="username" name="username" placeholder="Enter assigned username" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="password">Agent Password <span class="required-star">*</span></label>
+                <input type="password" id="password" name="password" placeholder="••••••••••••" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block" style="margin-top: 10px;">
+                🔐 Sign In to Operations Dashboard
+            </button>
+        </form>
+
+        <div class="login-footer">
+            <a href="{{ url_for('home') }}">← Return to Public Report Page</a>
+            <p style="margin-top: 8px; font-size: 11px;">
+                Restricted access. All login attempts and IP activities are logged for public safety audit.
+            </p>
+        </div>
+    </div>
+</main>
+
+<footer class="site-footer">
+    <div>&copy; 2026 FloodGuard AI Incident Management Network. All rights reserved.</div>
+</footer>
+
+<script>
+    if (window.location.protocol === 'file:') {
+        document.write('<script src="../static/script.js"><\/script>');
+    }
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

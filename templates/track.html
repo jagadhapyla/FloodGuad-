@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Track Incident - FloodGuard AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" onerror="this.onerror=null;this.href='../static/style.css';">
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.write('<link rel="stylesheet" href="../static/style.css">');
+        }
+    </script>
+</head>
+<body>
+
+<header class="site-header">
+    <div class="nav-container">
+        <a href="{{ url_for('home') }}" class="brand-link">
+            <div class="brand-icon">🌊</div>
+            <div>
+                <span class="brand-name">FloodGuard AI</span>
+                <span class="brand-badge">Incident Tracker</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('home') }}" class="nav-link btn-portal">
+                ← Public Reporter
+            </a>
+            <a href="{{ url_for('agent_login') }}" class="nav-link btn-portal">
+                🛡️ Agent Portal
+            </a>
+        </div>
+    </div>
+</header>
+
+<main class="main-content">
+    <div class="container">
+        
+        <div class="page-header">
+            <h1 class="page-title">🔍 Track Flood Incident</h1>
+            <p class="page-subtitle">Check real-time rescue status, emergency remarks, and agent updates.</p>
+        </div>
+
+        <!-- Flash Messages -->
+        <div class="flash-wrapper">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">
+                            <span>
+                                {% if category == 'success' %}✓{% else %}⚠️{% endif %}
+                                {{ message }}
+                            </span>
+                            <button type="button" class="alert-dismiss" aria-label="Close">&times;</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Tracking Search Form -->
+        <form method="POST" action="{{ url_for('track') }}" style="margin-bottom: 25px;">
+            <div class="form-group">
+                <label for="tracking_id">Complaint / Tracking ID <span class="required-star">*</span></label>
+                <input type="text" id="tracking_id" name="tracking_id" placeholder="e.g. FG1 or 1" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email Address <span class="required-star">*</span></label>
+                <input type="email" id="email" name="email" placeholder="name@example.com (used when submitting)" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">
+                🔎 Look Up Incident Status
+            </button>
+        </form>
+
+        <!-- Tracking Results Card -->
+        {% if problem %}
+            <div class="problem-card" style="margin-top: 25px; border-top: 3px solid var(--primary);">
+                <div class="problem-header">
+                    <div class="id-badge">
+                        <span>🆔 Incident FG{{ problem.id }}</span>
+                        {% if problem.created_at %}
+                            <span class="date-badge">• Reported on {{ problem.created_at }}</span>
+                        {% endif %}
+                    </div>
+                    <div>
+                        {% if problem.status == 'Pending' %}
+                            <span class="status-badge pending">⏳ Pending Assessment</span>
+                        {% elif problem.status == 'In Progress' %}
+                            <span class="status-badge in-progress">🚧 In Progress</span>
+                        {% elif problem.status == 'Completed' %}
+                            <span class="status-badge completed">✓ Resolved</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="problem-body" style="grid-template-columns: 1fr;">
+                    <div>
+                        <h3 class="problem-title">{{ problem.title }}</h3>
+                        
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Reporter Name</span>
+                                <span class="info-value">👤 {{ problem.name }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Current Status</span>
+                                <span class="info-value"><strong>{{ problem.status }}</strong></span>
+                            </div>
+                            <div class="info-item" style="grid-column: 1 / -1;">
+                                <span class="info-label">Reported Location</span>
+                                <span class="info-value">📍 {{ problem.location }}</span>
+                            </div>
+                        </div>
+
+                        <span class="info-label">Your Report Description</span>
+                        <div class="description-box">
+                            {{ problem.description }}
+                        </div>
+
+                        {% if problem.remarks %}
+                            <span class="info-label" style="color: var(--primary);">Emergency Agent Resolution Remarks</span>
+                            <div class="description-box" style="background: var(--primary-light); border-left: 4px solid var(--primary); color: var(--primary-dark);">
+                                {{ problem.remarks }}
+                            </div>
+                        {% endif %}
+
+                        {% if problem.latitude and problem.longitude %}
+                            <span class="info-label">Pinned Satellite Coordinates</span>
+                            <div class="coordinates-row">
+                                <div class="coord-tag">
+                                    <span class="tag-label">Lat:</span> {{ "%.5f"|format(problem.latitude) }}°
+                                </div>
+                                <div class="coord-tag">
+                                    <span class="tag-label">Lon:</span> {{ "%.5f"|format(problem.longitude) }}°
+                                </div>
+                                <a href="https://www.google.com/maps?q={{ problem.latitude }},{{ problem.longitude }}" target="_blank" rel="noopener noreferrer" class="btn-map">
+                                    🗺️ View on Google Maps &rarr;
+                                </a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        {% elif searched %}
+            <div class="empty-state" style="padding: 30px;">
+                <div class="empty-icon">❌</div>
+                <h3 class="empty-title">Incident Not Found</h3>
+                <p class="empty-subtitle">Please double check your Tracking ID and the email address used during submission.</p>
+            </div>
+        {% endif %}
+
+    </div>
+</main>
+
+<footer class="site-footer">
+    <div>&copy; 2026 FloodGuard AI Incident Management Network. All rights reserved.</div>
+</footer>
+
+<script>
+    if (window.location.protocol === 'file:') {
+        document.write('<script src="../static/script.js"><\/script>');
+    }
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FloodGuard AI - Citizen Incident Reporter</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" onerror="this.onerror=null;this.href='../static/style.css';">
+    <script>
+        if (window.location.protocol === 'file:') {
+            document.write('<link rel="stylesheet" href="../static/style.css">');
+        }
+    </script>
+</head>
+<body>
+
+<!-- Emergency Top Alert Bar -->
+<div class="alert-strip">
+    <strong>EMERGENCY ALERT</strong> If you are trapped or in immediate danger, dial 112 / 911 immediately.
+</div>
+
+<!-- Header Navigation -->
+<header class="site-header">
+    <div class="nav-container">
+        <a href="{{ url_for('home') }}" class="brand-link">
+            <div class="brand-icon">🌊</div>
+            <div>
+                <span class="brand-name">FloodGuard AI</span>
+                <span class="brand-badge">Live Monitor</span>
+            </div>
+        </a>
+        <div class="nav-links">
+            <a href="{{ url_for('track') }}" class="nav-link btn-portal">
+                🔍 Track Incident
+            </a>
+            <a href="{{ url_for('agent_login') }}" class="nav-link btn-portal">
+                🛡️ Agent Portal
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- Main Report Form Container -->
+<main class="main-content">
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">🌊 Report Flood Incident</h1>
+            <p class="page-subtitle">
+                Crowdsourced flood monitoring and rapid emergency dispatch. Your report notifies disaster response teams immediately.
+            </p>
+        </div>
+
+        <!-- Flash Messages -->
+        <div class="flash-wrapper">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="message {{ category }}">
+                            <span>
+                                {% if category == 'success' %}✓{% else %}⚠️{% endif %}
+                                {{ message }}
+                            </span>
+                            <button type="button" class="alert-dismiss" aria-label="Close">&times;</button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+
+        <!-- Complaint Form -->
+        <form id="complaintForm" action="{{ url_for('submit_problem') }}" method="POST" enctype="multipart/form-data">
+            
+            <div class="form-group">
+                <label for="name">Your Full Name <span class="required-star">*</span></label>
+                <input type="text" id="name" name="name" placeholder="e.g. John Doe" maxlength="100" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">
+                    Email Address <span class="required-star">*</span>
+                    <span class="label-hint">(You will receive an email once the issue is resolved)</span>
+                </label>
+                <input type="email" id="email" name="email" placeholder="name@example.com" maxlength="254" required>
+            </div>
+
+            <div class="form-group">
+                <label for="title">Incident Title <span class="required-star">*</span></label>
+                <input type="text" id="title" name="title" placeholder="e.g. Severe waterlogging near Central Metro Station" maxlength="150" required>
+            </div>
+
+            <div class="form-group">
+                <label for="location">Location / Landmark Description <span class="required-star">*</span></label>
+                <input type="text" id="location" name="location" placeholder="e.g. Corner of Main Road and 4th Street, near City Hospital" maxlength="250" required>
+            </div>
+
+            <div class="form-group">
+                <label for="description">Detailed Description <span class="required-star">*</span></label>
+                <textarea id="description" name="description" placeholder="Describe water depth, current conditions, stranded vehicles, blocked drainage, or specific assistance required..." maxlength="3000" required></textarea>
+            </div>
+
+            <!-- GPS Verification Section -->
+            <div class="location-section">
+                <div class="location-header">
+                    <span class="location-title">📍 Live GPS Coordinates <span class="required-star">*</span></span>
+                </div>
+                <p class="dropzone-subtext" style="margin-bottom: 10px;">
+                    Accurate satellite coordinates enable emergency crews and rescue teams to pinpoint your exact flood location.
+                </p>
+
+                <button type="button" id="locationButton" class="btn-gps">
+                    <span>📡 Detect Live GPS Location</span>
+                </button>
+
+                <div id="locationStatus" class="location-status">
+                    Click the button above to acquire satellite coordinates.
+                </div>
+
+                <div id="coordinates" class="coordinates-box"></div>
+
+                <!-- Hidden inputs for backend processing -->
+                <input type="hidden" name="latitude" id="latitude">
+                <input type="hidden" name="longitude" id="longitude">
+                <input type="hidden" name="accuracy" id="accuracy">
+            </div>
+
+            <!-- Photo Upload Section -->
+            <div class="photo-section">
+                <label>Flood Location Photograph <span class="required-star">*</span></label>
+                <div class="upload-dropzone" id="uploadDropzone">
+                    <div class="dropzone-icon">📷</div>
+                    <div class="dropzone-text">Click or drag &amp; drop flood photo here</div>
+                    <div class="dropzone-subtext">Supports JPEG, PNG, WEBP (Max 5 MB)</div>
+                    <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp" capture="environment" required>
+                </div>
+
+                <div id="photoPreviewContainer" class="preview-wrapper">
+                    <img id="photoPreview" class="preview-image" alt="Incident Preview">
+                    <button type="button" id="removePhotoBtn" class="btn-remove-photo">✕ Change Photo</button>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="btn btn-primary btn-block">
+                🚀 Submit Flood Incident Report
+            </button>
+        </form>
+
+        <div style="text-align: center; margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--border); font-size: 13px; color: var(--text-muted); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+            <a href="{{ url_for('track') }}" style="font-weight: 600;">🔍 Track Existing Incident Status</a>
+            <a href="{{ url_for('agent_login') }}" style="font-weight: 600;">Agent Login Portal &rarr;</a>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="site-footer">
+    <div class="footer-hotlines">
+        <span>🚨 Disaster Management Helpline: 1078</span>
+        <span>•</span>
+        <span>🚑 National Emergency Number: 112 / 911</span>
+        <span>•</span>
+        <span>🚒 Flood Control Room: 1070</span>
+    </div>
+    <div>&copy; 2026 FloodGuard AI Incident Management Network. All rights reserved.</div>
+</footer>
+
+<script>
+    if (window.location.protocol === 'file:') {
+        document.write('<script src="../static/script.js"><\/script>');
+    }
+</script>
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
